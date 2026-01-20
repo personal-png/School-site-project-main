@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test CD Command</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .test-result { margin: 10px 0; padding: 10px; border: 1px solid #ddd; }
+        .success { background-color: #d4edda; color: #155724; }
+        .error { background-color: #f8d7da; color: #721c24; }
+    </style>
+</head>
+<body>
+    <h1>Testing CD Command Implementation</h1>
+
+    <div id="test-results"></div>
+
+    <script>
+        // Test the console state and cd command functionality
+        const consoleState = {
+            currentDirectory: '/home/user',
+            files: {
+                '/home/user': ['documents', 'downloads', 'projects'],
+                '/home/user/documents': ['notes.txt', 'report.doc'],
+                '/home/user/downloads': ['software.zip', 'image.jpg'],
+                '/home/user/projects': ['web', 'scripts'],
+                '/home/user/projects/web': ['index.html', 'style.css'],
+                '/home/user/projects/scripts': ['backup.sh', 'install.sh']
+            }
+        };
+
+        // CD command implementation
+        function executeCDCommand(args) {
+            if (args.length === 0) {
+                return 'Использование: cd [путь]';
+            }
+            const targetDir = args[0];
+            let newDirectory;
+
+            if (targetDir === '..') {
+                // Переход на уровень выше
+                const parts = consoleState.currentDirectory.split('/');
+                if (parts.length > 3) { // /home/user - минимальный путь
+                    parts.pop();
+                    newDirectory = parts.join('/');
+                } else {
+                    return `cd: cannot go above ${consoleState.currentDirectory}`;
+                }
+            } else if (targetDir === '~' || targetDir === '/') {
+                // Переход в домашнюю директорию
+                newDirectory = '/home/user';
+            } else if (targetDir.startsWith('/')) {
+                // Абсолютный путь
+                if (consoleState.files[targetDir]) {
+                    newDirectory = targetDir;
+                } else {
+                    return `cd: no such directory: ${targetDir}`;
+                }
+            } else {
+                // Относительный путь
+                const newPath = `${consoleState.currentDirectory}/${targetDir}`;
+                if (consoleState.files[newPath]) {
+                    newDirectory = newPath;
+                } else {
+                    return `cd: no such directory: ${targetDir}`;
+                }
+            }
+
+            consoleState.currentDirectory = newDirectory;
+            return '';
+        }
+
+        // Test cases
+        const testCases = [
+            { name: "CD to documents", args: ["documents"], expected: "/home/user/documents" },
+            { name: "CD back to parent", args: [".."], expected: "/home/user" },
+            { name: "CD to home", args: ["~"], expected: "/home/user" },
+            { name: "CD to absolute path", args: ["/home/user/projects"], expected: "/home/user/projects" },
+            { name: "CD to subdirectory", args: ["web"], expected: "/home/user/projects/web" },
+            { name: "CD to invalid directory", args: ["nonexistent"], expected: "cd: no such directory: nonexistent" }
+        ];
+
+        // Run tests
+        function runTests() {
+            const resultsDiv = document.getElementById('test-results');
+
+            testCases.forEach((testCase, index) => {
+                const resultDiv = document.createElement('div');
+                resultDiv.className = 'test-result';
+
+                // Reset to home directory before each test
+                consoleState.currentDirectory = '/home/user';
+
+                const result = executeCDCommand(testCase.args);
+                const success = result === '' && consoleState.currentDirectory === testCase.expected;
+
+                resultDiv.innerHTML = `
+                    <strong>Test ${index + 1}: ${testCase.name}</strong><br>
+                    Command: cd ${testCase.args[0]}<br>
+                    Result: ${result || consoleState.currentDirectory}<br>
+                    Expected: ${testCase.expected}<br>
+                    Status: ${success ? '✅ PASS' : '❌ FAIL'}
+                `;
+
+                resultDiv.className += success ? ' success' : ' error';
+                resultsDiv.appendChild(resultDiv);
+            });
+        }
+
+        // Run tests when page loads
+        window.onload = runTests;
+    </script>
+</body>
+</html>
