@@ -1308,10 +1308,10 @@ function initConsole() {
             consoleInput.focus();
         }
 
-        // Добавляем обработчик для кнопки очистки
-        const clearBtn = activeLevel.querySelector('.console-clear-btn');
-        if (clearBtn) {
-            clearBtn.addEventListener('click', clearConsole);
+        // Добавляем обработчик для кнопки сброса
+        const resetBtn = activeLevel.querySelector('.console-clear-btn');
+        if (resetBtn) {
+            resetBtn.addEventListener('click', resetConsole);
         }
     }
 
@@ -1857,58 +1857,117 @@ function checkQuestCommands() {
 
 // Проверка завершения квеста 3.1 - проверяем фактическое существование структуры папок и файла
 function checkQuest31Completion() {
-    // Проверяем существование структуры папок "study/projects/test" и файла "task"
-    const basePath = '/home/user';
-    const expectedStructure = [
-        { path: `${basePath}/study`, type: 'directory' },
-        { path: `${basePath}/study/projects`, type: 'directory' },
-        { path: `${basePath}/study/projects/test`, type: 'directory' },
-        { path: `${basePath}/study/projects/test/task`, type: 'file' }
-    ];
+    // Ищем структуру "study/projects/test/task" в любом месте файловой системы
+    let structureFound = false;
+    let correctStructurePath = null;
 
-    let structureComplete = true;
-    let missingElements = [];
+    // Рекурсивно ищем правильную структуру в файловой системе
+    function findCorrectStructure(currentPath) {
+        if (!consoleState.files[currentPath]) {
+            return false;
+        }
 
-    // Проверяем каждую часть структуры
-    for (const element of expectedStructure) {
-        if (element.type === 'directory') {
-            if (!consoleState.files[element.path]) {
-                structureComplete = false;
-                missingElements.push(`папка ${element.path}`);
-            }
-        } else if (element.type === 'file') {
-            const dirPath = element.path.substring(0, element.path.lastIndexOf('/'));
-            const fileName = element.path.substring(element.path.lastIndexOf('/') + 1);
+        // Ищем папку "study" в текущей директории
+        if (consoleState.files[currentPath].includes('study')) {
+            const studyPath = `${currentPath}/study`;
 
-            if (!consoleState.files[dirPath] || !consoleState.files[dirPath].includes(fileName)) {
-                structureComplete = false;
-                missingElements.push(`файл ${fileName} в ${dirPath}`);
+            // Проверяем, что это директория (есть в файловой системе)
+            if (consoleState.files[studyPath]) {
+                // Ищем папку "projects" внутри "study"
+                if (consoleState.files[studyPath].includes('projects')) {
+                    const projectsPath = `${studyPath}/projects`;
+
+                    // Проверяем, что это директория
+                    if (consoleState.files[projectsPath]) {
+                        // Ищем папку "test" внутри "projects"
+                        if (consoleState.files[projectsPath].includes('test')) {
+                            const testPath = `${projectsPath}/test`;
+
+                            // Проверяем, что это директория
+                            if (consoleState.files[testPath]) {
+                                // Ищем файл "task" внутри "test"
+                                if (consoleState.files[testPath].includes('task')) {
+                                    // Нашли правильную структуру!
+                                    return testPath;
+                                }
+                            }
+                        }
+                    }
+                }
             }
         }
-    }
 
-    // Дополнительная проверка: файл "task" должен быть именно в папке "test", а не в других папках
-    // Проверяем, что файл не находится в неправильных местах (например, в папке "projects" вместо "test")
-    const wrongLocations = [
-        `${basePath}/study/projects/task`,
-        `${basePath}/study/task`,
-        `${basePath}/task`
-    ];
-
-    for (const wrongPath of wrongLocations) {
-        const wrongDirPath = wrongPath.substring(0, wrongPath.lastIndexOf('/'));
-        const wrongFileName = wrongPath.substring(wrongPath.lastIndexOf('/') + 1);
-
-        if (consoleState.files[wrongDirPath] && consoleState.files[wrongDirPath].includes(wrongFileName)) {
-            // Файл находится в неправильном месте - квест не должен засчитываться
-            structureComplete = false;
-            missingElements.push(`файл "task" находится в неправильном месте (${wrongDirPath})`);
-            break;
+        // Рекурсивно ищем в поддиректориях
+        for (const item of consoleState.files[currentPath]) {
+            const itemPath = `${currentPath}/${item}`;
+            if (consoleState.files[itemPath]) { // Это директория
+                const result = findCorrectStructure(itemPath);
+                if (result) {
+                    return result;
+                }
+            }
         }
+
+        return false;
     }
 
-    // Если структура полностью создана и квест еще не завершен
-    if (structureComplete && !gameData.quests['3.1'].completed) {
+    // Начинаем поиск с корневой директории
+    const searchResult = findCorrectStructure('/home/user');
+
+    if (searchResult) {
+        structureFound = true;
+        correctStructurePath = searchResult;
+    }
+
+    // Дополнительная проверка: файл "task" не должен находиться в неправильных местах
+    // Проверяем, что файл не находится в других местах (например, в папке "projects" вместо "test")
+    function checkWrongLocations() {
+        // Ищем все вхождения файла "task" в неправильных местах
+        function findWrongTaskLocations(currentPath, wrongLocations) {
+            if (!consoleState.files[currentPath]) {
+                return;
+            }
+
+            // Проверяем, есть ли файл "task" в текущей директории
+            if (consoleState.files[currentPath].includes('task')) {
+                // Проверяем, что это не правильное расположение (если мы уже нашли правильную структуру)
+                if (correctStructurePath && currentPath !== correctStructurePath) {
+                    wrongLocations.push(currentPath);
+                }
+                // Если мы еще не нашли правильную структуру, но файл "task" есть в "projects" или "study"
+                else if (!correctStructurePath &&
+                         (currentPath.endsWith('/study/projects') ||
+                          currentPath.endsWith('/study') ||
+                          currentPath === '/home/user')) {
+                    wrongLocations.push(currentPath);
+                }
+            }
+
+            // Рекурсивно проверяем поддиректории
+            for (const item of consoleState.files[currentPath]) {
+                const itemPath = `${currentPath}/${item}`;
+                if (consoleState.files[itemPath]) { // Это директория
+                    findWrongTaskLocations(itemPath, wrongLocations);
+                }
+            }
+
+            return wrongLocations;
+        }
+
+        const wrongLocations = findWrongTaskLocations('/home/user', []);
+
+        // Если есть неправильные расположения файла "task", квест не засчитывается
+        if (wrongLocations.length > 0) {
+            return false;
+        }
+
+        return true;
+    }
+
+    const structureValid = checkWrongLocations();
+
+    // Если структура найдена и она валидна, и квест еще не завершен
+    if (structureFound && structureValid && !gameData.quests['3.1'].completed) {
         // Помечаем квест как завершенный
         updateQuest('3.1', true);
     }
@@ -2017,6 +2076,53 @@ function clearConsole() {
     }
     consoleState.history = [];
     consoleState.historyIndex = -1;
+}
+
+// Полный сброс консоли
+function resetConsole() {
+    const activeLevel = document.querySelector('.quest-level.active');
+    if (activeLevel) {
+        const output = activeLevel.querySelector('.console-output');
+        if (output) {
+            output.innerHTML = `
+                <div class="console-line">🔄 Консоль полностью сброшена!</div>
+                <div class="console-line">Добро пожаловать в учебный терминал!</div>
+                <div class="console-line">Введите команды как в реальном терминале.</div>
+                <div class="console-line">Доступные команды: ${consoleState.currentLevelCommands[currentLevel].join(', ')}</div>
+            `;
+        }
+
+        // Сбрасываем состояние консоли
+        consoleState.history = [];
+        consoleState.historyIndex = -1;
+        consoleState.completedCommands = {};
+        consoleState.currentDirectory = '/home/user';
+        consoleState.files = {
+            '/home/user': ['documents', 'downloads', 'projects'],
+            '/home/user/documents': ['notes.txt', 'report.doc'],
+            '/home/user/downloads': ['software.zip', 'image.jpg'],
+            '/home/user/projects': ['web', 'scripts'],
+            '/home/user/projects/web': ['index.html', 'style.css'],
+            '/home/user/projects/scripts': ['backup.sh', 'install.sh']
+        };
+        consoleState.scriptContent = '';
+        consoleState.scriptCreated = false;
+
+        // Сбрасываем прогресс по текущему квесту (если он не завершен)
+        const currentLevelQuests = Object.keys(gameData.quests)
+            .filter(questId => questId.startsWith(currentLevel + '.'));
+
+        currentLevelQuests.forEach(questId => {
+            if (!gameData.quests[questId].completed) {
+                gameData.quests[questId].completed = false;
+                updateQuestStatus(questId);
+            }
+        });
+
+        // Обновляем интерфейс
+        updateAllQuestStatuses();
+        saveProgress();
+    }
 }
 
 // Функции для шпаргалки

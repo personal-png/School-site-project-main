@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Тест функции сброса консоли</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            padding: 20px;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        .test-case {
+            margin-bottom: 30px;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .test-case h3 {
+            margin-top: 0;
+            color: #333;
+        }
+        .test-result {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 3px;
+            font-weight: bold;
+        }
+        .success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .failure {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        pre {
+            background-color: #f8f9fa;
+            padding: 10px;
+            border-radius: 3px;
+            overflow-x: auto;
+        }
+    </style>
+</head>
+<body>
+    <h1>Тестирование функции сброса консоли</h1>
+    <p>Этот тест проверяет, что функция resetConsole() правильно сбрасывает состояние консоли.</p>
+
+    <div class="test-case">
+        <h3>Тест 1: Проверка сброса состояния консоли</h3>
+        <button onclick="testConsoleStateReset()">Запустить тест</button>
+        <div id="result1" class="test-result"></div>
+        <pre id="output1"></pre>
+    </div>
+
+    <div class="test-case">
+        <h3>Тест 2: Проверка сброса истории команд</h3>
+        <button onclick="testCommandHistoryReset()">Запустить тест</button>
+        <div id="result2" class="test-result"></div>
+        <pre id="output2"></pre>
+    </div>
+
+    <div class="test-case">
+        <h3>Тест 3: Проверка сброса файловой системы</h3>
+        <button onclick="testFileSystemReset()">Запустить тест</button>
+        <div id="result3" class="test-result"></div>
+        <pre id="output3"></pre>
+    </div>
+
+    <div class="test-case">
+        <h3>Тест 4: Проверка сброса прогресса квестов</h3>
+        <button onclick="testQuestProgressReset()">Запустить тест</button>
+        <div id="result4" class="test-result"></div>
+        <pre id="output4"></pre>
+    </div>
+
+    <script>
+        // Импортируем функции из script.js
+        const consoleState = {
+            currentDirectory: '/home/user',
+            files: {
+                '/home/user': ['documents', 'downloads', 'projects'],
+                '/home/user/documents': ['notes.txt', 'report.doc'],
+                '/home/user/downloads': ['software.zip', 'image.jpg'],
+                '/home/user/projects': ['web', 'scripts'],
+                '/home/user/projects/web': ['index.html', 'style.css'],
+                '/home/user/projects/scripts': ['backup.sh', 'install.sh']
+            },
+            history: ['ipconfig', 'ping 192.168.1.1', 'ls'],
+            historyIndex: 3,
+            currentLevelCommands: {
+                1: ['ipconfig', 'ping', 'pwd', 'ls', 'mkdir', 'cp'],
+                2: ['ipconfig', 'ping', 'nslookup', 'traceroute'],
+                3: ['pwd', 'ls', 'mkdir', 'touch', 'cp', 'mv', 'rm', 'find', 'ps', 'top', 'cat', 'free', 'cd'],
+                4: ['nano', 'chmod', './myscript.sh']
+            },
+            expectedCommands: {
+                '1.1': 'ipconfig',
+                '1.2': 'ping 192.168.1.20',
+                '2.1': ['ipconfig', 'ping 192.168.1.1'],
+                '2.2': 'nslookup google.com',
+                '3.1': ['mkdir study', 'cd study', 'mkdir projects', 'cd projects', 'mkdir test', 'cd test', 'touch task'],
+                '3.2': ['find /home -name "*.txt"', 'cat /proc/cpuinfo', 'free -h'],
+                '4.1': ['nano myscript.sh', './myscript.sh']
+            },
+            completedCommands: {'1.1': ['ipconfig'], '1.2': ['ping 192.168.1.20']},
+            scriptContent: 'echo "Hello World"',
+            scriptCreated: true
+        };
+
+        const gameData = {
+            quests: {
+                '1.1': { completed: true, xp: 10, unlocked: true },
+                '1.2': { completed: true, xp: 15, unlocked: true },
+                '2.1': { completed: false, xp: 15, unlocked: false },
+                '2.2': { completed: false, xp: 10, unlocked: false },
+                '3.1': { completed: false, xp: 20, unlocked: false },
+                '3.2': { completed: false, xp: 20, unlocked: false },
+                '4.1': { completed: false, xp: 20, unlocked: false }
+            }
+        };
+
+        let currentLevel = 1;
+
+        // Функция сброса консоли (скопирована из script.js)
+        function resetConsole() {
+            // Сбрасываем состояние консоли
+            consoleState.history = [];
+            consoleState.historyIndex = -1;
+            consoleState.completedCommands = {};
+            consoleState.currentDirectory = '/home/user';
+            consoleState.files = {
+                '/home/user': ['documents', 'downloads', 'projects'],
+                '/home/user/documents': ['notes.txt', 'report.doc'],
+                '/home/user/downloads': ['software.zip', 'image.jpg'],
+                '/home/user/projects': ['web', 'scripts'],
+                '/home/user/projects/web': ['index.html', 'style.css'],
+                '/home/user/projects/scripts': ['backup.sh', 'install.sh']
+            };
+            consoleState.scriptContent = '';
+            consoleState.scriptCreated = false;
+
+            // Сбрасываем прогресс по текущему квесту (если он не завершен)
+            const currentLevelQuests = Object.keys(gameData.quests)
+                .filter(questId => questId.startsWith(currentLevel + '.'));
+
+            currentLevelQuests.forEach(questId => {
+                if (!gameData.quests[questId].completed) {
+                    gameData.quests[questId].completed = false;
+                }
+            });
+        }
+
+        // Тестовые случаи
+        function testConsoleStateReset() {
+            // Сохраняем исходное состояние
+            const originalHistory = [...consoleState.history];
+            const originalHistoryIndex = consoleState.historyIndex;
+            const originalCompletedCommands = {...consoleState.completedCommands};
+            const originalScriptContent = consoleState.scriptContent;
+            const originalScriptCreated = consoleState.scriptCreated;
+
+            // Вызываем функцию сброса
+            resetConsole();
+
+            const resultElement = document.getElementById('result1');
+            const outputElement = document.getElementById('output1');
+
+            // Проверяем, что состояние сбросилось
+            const historyReset = consoleState.history.length === 0;
+            const historyIndexReset = consoleState.historyIndex === -1;
+            const commandsReset = Object.keys(consoleState.completedCommands).length === 0;
+            const scriptContentReset = consoleState.scriptContent === '';
+            const scriptCreatedReset = consoleState.scriptCreated === false;
+
+            if (historyReset && historyIndexReset && commandsReset && scriptContentReset && scriptCreatedReset) {
+                resultElement.className = 'test-result success';
+                resultElement.textContent = '✅ ТЕСТ ПРОЙДЕН: Состояние консоли успешно сброшено';
+            } else {
+                resultElement.className = 'test-result failure';
+                resultElement.textContent = '❌ ТЕСТ НЕ ПРОЙДЕН: Состояние консоли не сбросилось полностью';
+            }
+
+            outputElement.textContent = `Исходное состояние:\n` +
+                `История: [${originalHistory.join(', ')}]\n` +
+                `Индекс истории: ${originalHistoryIndex}\n` +
+                `Выполненные команды: ${JSON.stringify(originalCompletedCommands)}\n` +
+                `Содержимое скрипта: "${originalScriptContent}"\n` +
+                `Скрипт создан: ${originalScriptCreated}\n\n` +
+                `Состояние после сброса:\n` +
+                `История: [${consoleState.history.join(', ')}]\n` +
+                `Индекс истории: ${consoleState.historyIndex}\n` +
+                `Выполненные команды: ${JSON.stringify(consoleState.completedCommands)}\n` +
+                `Содержимое скрипта: "${consoleState.scriptContent}"\n` +
+                `Скрипт создан: ${consoleState.scriptCreated}`;
+        }
+
+        function testCommandHistoryReset() {
+            // Добавляем команды в историю
+            consoleState.history = ['ipconfig', 'ping 192.168.1.1', 'ls', 'cd documents'];
+            consoleState.historyIndex = 4;
+
+            // Вызываем функцию сброса
+            resetConsole();
+
+            const resultElement = document.getElementById('result2');
+            const outputElement = document.getElementById('output2');
+
+            // Проверяем, что история команд сбросилась
+            const historyEmpty = consoleState.history.length === 0;
+            const indexReset = consoleState.historyIndex === -1;
+
+            if (historyEmpty && indexReset) {
+                resultElement.className = 'test-result success';
+                resultElement.textContent = '✅ ТЕСТ ПРОЙДЕН: История команд успешно сброшена';
+            } else {
+                resultElement.className = 'test-result failure';
+                resultElement.textContent = '❌ ТЕСТ НЕ ПРОЙДЕН: История команд не сбросилась';
+            }
+
+            outputElement.textContent = `Состояние после сброса:\n` +
+                `История команд: [${consoleState.history.join(', ')}]\n` +
+                `Индекс истории: ${consoleState.historyIndex}`;
+        }
+
+        function testFileSystemReset() {
+            // Модифицируем файловую систему
+            consoleState.files['/home/user/test'] = ['testfile.txt'];
+            consoleState.files['/home/user'].push('test');
+            consoleState.currentDirectory = '/home/user/test';
+
+            // Вызываем функцию сброса
+            resetConsole();
+
+            const resultElement = document.getElementById('result3');
+            const outputElement = document.getElementById('output3');
+
+            // Проверяем, что файловая система сбросилась
+            const directoryReset = consoleState.currentDirectory === '/home/user';
+            const filesReset = JSON.stringify(consoleState.files) === JSON.stringify({
+                '/home/user': ['documents', 'downloads', 'projects'],
+                '/home/user/documents': ['notes.txt', 'report.doc'],
+                '/home/user/downloads': ['software.zip', 'image.jpg'],
+                '/home/user/projects': ['web', 'scripts'],
+                '/home/user/projects/web': ['index.html', 'style.css'],
+                '/home/user/projects/scripts': ['backup.sh', 'install.sh']
+            });
+
+            if (directoryReset && filesReset) {
+                resultElement.className = 'test-result success';
+                resultElement.textContent = '✅ ТЕСТ ПРОЙДЕН: Файловая система успешно сброшена';
+            } else {
+                resultElement.className = 'test-result failure';
+                resultElement.textContent = '❌ ТЕСТ НЕ ПРОЙДЕН: Файловая система не сбросилась';
+            }
+
+            outputElement.textContent = `Состояние после сброса:\n` +
+                `Текущая директория: ${consoleState.currentDirectory}\n` +
+                `Файловая система: ${JSON.stringify(consoleState.files, null, 2)}`;
+        }
+
+        function testQuestProgressReset() {
+            // Завершаем несколько квестов
+            gameData.quests['1.1'].completed = true;
+            gameData.quests['1.2'].completed = true;
+            gameData.quests['2.1'].completed = true;
+
+            // Вызываем функцию сброса
+            resetConsole();
+
+            const resultElement = document.getElementById('result4');
+            const outputElement = document.getElementById('output4');
+
+            // Проверяем, что прогресс квестов сбросился (только для незавершенных квестов)
+            const quest11StillCompleted = gameData.quests['1.1'].completed; // Должен остаться завершенным
+            const quest12StillCompleted = gameData.quests['1.2'].completed; // Должен остаться завершенным
+            const quest21Reset = !gameData.quests['2.1'].completed; // Должен сброситься
+
+            if (quest11StillCompleted && quest12StillCompleted && quest21Reset) {
+                resultElement.className = 'test-result success';
+                resultElement.textContent = '✅ ТЕСТ ПРОЙДЕН: Прогресс квестов сброшен правильно (завершенные квесты сохранены)';
+            } else {
+                resultElement.className = 'test-result failure';
+                resultElement.textContent = '❌ ТЕСТ НЕ ПРОЙДЕН: Прогресс квестов сбросился неправильно';
+            }
+
+            outputElement.textContent = `Состояние квестов после сброса:\n` +
+                `Квест 1.1: ${gameData.quests['1.1'].completed ? 'Завершен' : 'Не завершен'}\n` +
+                `Квест 1.2: ${gameData.quests['1.2'].completed ? 'Завершен' : 'Не завершен'}\n` +
+                `Квест 2.1: ${gameData.quests['2.1'].completed ? 'Завершен' : 'Не завершен'}\n` +
+                `Квест 2.2: ${gameData.quests['2.2'].completed ? 'Завершен' : 'Не завершен'}`;
+        }
+    </script>
+</body>
+</html>

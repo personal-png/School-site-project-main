@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Тест квеста 3.1</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            padding: 20px;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        .test-case {
+            margin-bottom: 30px;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .test-case h3 {
+            margin-top: 0;
+            color: #333;
+        }
+        .test-result {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 3px;
+            font-weight: bold;
+        }
+        .success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .failure {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        pre {
+            background-color: #f8f9fa;
+            padding: 10px;
+            border-radius: 3px;
+            overflow-x: auto;
+        }
+    </style>
+</head>
+<body>
+    <h1>Тестирование квеста 3.1</h1>
+    <p>Этот тест проверяет, что квест 3.1 засчитывается при правильной структуре папок в любом месте файловой системы.</p>
+
+    <div class="test-case">
+        <h3>Тест 1: Правильная структура в корневой директории</h3>
+        <p>Структура: /home/user/study/projects/test/task</p>
+        <button onclick="testCase1()">Запустить тест</button>
+        <div id="result1" class="test-result"></div>
+        <pre id="output1"></pre>
+    </div>
+
+    <div class="test-case">
+        <h3>Тест 2: Правильная структура в поддиректории</h3>
+        <p>Структура: /home/user/documents/study/projects/test/task</p>
+        <button onclick="testCase2()">Запустить тест</button>
+        <div id="result2" class="test-result"></div>
+        <pre id="output2"></pre>
+    </div>
+
+    <div class="test-case">
+        <h3>Тест 3: Неправильная структура (файл в неправильной папке)</h3>
+        <p>Структура: /home/user/study/projects/task (файл в projects вместо test)</p>
+        <button onclick="testCase3()">Запустить тест</button>
+        <div id="result3" class="test-result"></div>
+        <pre id="output3"></pre>
+    </div>
+
+    <div class="test-case">
+        <h3>Тест 4: Неполная структура</h3>
+        <p>Структура: /home/user/study/projects (нет папки test и файла task)</p>
+        <button onclick="testCase4()">Запустить тест</button>
+        <div id="result4" class="test-result"></div>
+        <pre id="output4"></pre>
+    </div>
+
+    <script>
+        // Импортируем функции из script.js
+        const consoleState = {
+            files: {},
+            completedCommands: {},
+            scriptContent: '',
+            scriptCreated: false
+        };
+
+        const gameData = {
+            quests: {
+                '3.1': { completed: false, xp: 20, unlocked: true }
+            }
+        };
+
+        // Функция проверки квеста 3.1 (скопирована из script.js)
+        function checkQuest31Completion() {
+            // Ищем структуру "study/projects/test/task" в любом месте файловой системы
+            let structureFound = false;
+            let correctStructurePath = null;
+
+            // Рекурсивно ищем правильную структуру в файловой системе
+            function findCorrectStructure(currentPath) {
+                if (!consoleState.files[currentPath]) {
+                    return false;
+                }
+
+                // Ищем папку "study" в текущей директории
+                if (consoleState.files[currentPath].includes('study')) {
+                    const studyPath = `${currentPath}/study`;
+
+                    // Проверяем, что это директория (есть в файловой системе)
+                    if (consoleState.files[studyPath]) {
+                        // Ищем папку "projects" внутри "study"
+                        if (consoleState.files[studyPath].includes('projects')) {
+                            const projectsPath = `${studyPath}/projects`;
+
+                            // Проверяем, что это директория
+                            if (consoleState.files[projectsPath]) {
+                                // Ищем папку "test" внутри "projects"
+                                if (consoleState.files[projectsPath].includes('test')) {
+                                    const testPath = `${projectsPath}/test`;
+
+                                    // Проверяем, что это директория
+                                    if (consoleState.files[testPath]) {
+                                        // Ищем файл "task" внутри "test"
+                                        if (consoleState.files[testPath].includes('task')) {
+                                            // Нашли правильную структуру!
+                                            return testPath;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // Рекурсивно ищем в поддиректориях
+                for (const item of consoleState.files[currentPath]) {
+                    const itemPath = `${currentPath}/${item}`;
+                    if (consoleState.files[itemPath]) { // Это директория
+                        const result = findCorrectStructure(itemPath);
+                        if (result) {
+                            return result;
+                        }
+                    }
+                }
+
+                return false;
+            }
+
+            // Начинаем поиск с корневой директории
+            const searchResult = findCorrectStructure('/home/user');
+
+            if (searchResult) {
+                structureFound = true;
+                correctStructurePath = searchResult;
+            }
+
+            // Дополнительная проверка: файл "task" не должен находиться в неправильных местах
+            // Проверяем, что файл не находится в других местах (например, в папке "projects" вместо "test")
+            function checkWrongLocations() {
+                // Ищем все вхождения файла "task" в неправильных местах
+                function findWrongTaskLocations(currentPath, wrongLocations) {
+                    if (!consoleState.files[currentPath]) {
+                        return;
+                    }
+
+                    // Проверяем, есть ли файл "task" в текущей директории
+                    if (consoleState.files[currentPath].includes('task')) {
+                        // Проверяем, что это не правильное расположение (если мы уже нашли правильную структуру)
+                        if (correctStructurePath && currentPath !== correctStructurePath) {
+                            wrongLocations.push(currentPath);
+                        }
+                        // Если мы еще не нашли правильную структуру, но файл "task" есть в "projects" или "study"
+                        else if (!correctStructurePath &&
+                                 (currentPath.endsWith('/study/projects') ||
+                                  currentPath.endsWith('/study') ||
+                                  currentPath === '/home/user')) {
+                            wrongLocations.push(currentPath);
+                        }
+                    }
+
+                    // Рекурсивно проверяем поддиректории
+                    for (const item of consoleState.files[currentPath]) {
+                        const itemPath = `${currentPath}/${item}`;
+                        if (consoleState.files[itemPath]) { // Это директория
+                            findWrongTaskLocations(itemPath, wrongLocations);
+                        }
+                    }
+
+                    return wrongLocations;
+                }
+
+                const wrongLocations = findWrongTaskLocations('/home/user', []);
+
+                // Если есть неправильные расположения файла "task", квест не засчитывается
+                if (wrongLocations.length > 0) {
+                    return false;
+                }
+
+                return true;
+            }
+
+            const structureValid = checkWrongLocations();
+
+            // Если структура найдена и она валидна, и квест еще не завершен
+            if (structureFound && structureValid && !gameData.quests['3.1'].completed) {
+                // Помечаем квест как завершенный
+                gameData.quests['3.1'].completed = true;
+                return true;
+            }
+
+            return false;
+        }
+
+        function updateQuest(questId, completed) {
+            if (gameData.quests[questId] && gameData.quests[questId].unlocked) {
+                gameData.quests[questId].completed = completed;
+            }
+        }
+
+        // Тестовые случаи
+        function testCase1() {
+            // Создаем правильную структуру в корневой директории
+            consoleState.files = {
+                '/home/user': ['study', 'documents', 'downloads'],
+                '/home/user/study': ['projects'],
+                '/home/user/study/projects': ['test'],
+                '/home/user/study/projects/test': ['task']
+            };
+
+            gameData.quests['3.1'].completed = false;
+
+            const result = checkQuest31Completion();
+            const resultElement = document.getElementById('result1');
+            const outputElement = document.getElementById('output1');
+
+            if (result) {
+                resultElement.className = 'test-result success';
+                resultElement.textContent = '✅ ТЕСТ ПРОЙДЕН: Квест засчитан';
+            } else {
+                resultElement.className = 'test-result failure';
+                resultElement.textContent = '❌ ТЕСТ НЕ ПРОЙДЕН: Квест не засчитан';
+            }
+
+            outputElement.textContent = 'Структура файлов:\n' + JSON.stringify(consoleState.files, null, 2);
+        }
+
+        function testCase2() {
+            // Создаем правильную структуру в поддиректории
+            consoleState.files = {
+                '/home/user': ['documents', 'downloads'],
+                '/home/user/documents': ['study'],
+                '/home/user/documents/study': ['projects'],
+                '/home/user/documents/study/projects': ['test'],
+                '/home/user/documents/study/projects/test': ['task']
+            };
+
+            gameData.quests['3.1'].completed = false;
+
+            const result = checkQuest31Completion();
+            const resultElement = document.getElementById('result2');
+            const outputElement = document.getElementById('output2');
+
+            if (result) {
+                resultElement.className = 'test-result success';
+                resultElement.textContent = '✅ ТЕСТ ПРОЙДЕН: Квест засчитан (структура в поддиректории)';
+            } else {
+                resultElement.className = 'test-result failure';
+                resultElement.textContent = '❌ ТЕСТ НЕ ПРОЙДЕН: Квест не засчитан';
+            }
+
+            outputElement.textContent = 'Структура файлов:\n' + JSON.stringify(consoleState.files, null, 2);
+        }
+
+        function testCase3() {
+            // Создаем неправильную структуру (файл в неправильной папке)
+            consoleState.files = {
+                '/home/user': ['study'],
+                '/home/user/study': ['projects'],
+                '/home/user/study/projects': ['task'] // Файл в projects вместо test
+            };
+
+            gameData.quests['3.1'].completed = false;
+
+            const result = checkQuest31Completion();
+            const resultElement = document.getElementById('result3');
+            const outputElement = document.getElementById('output3');
+
+            if (!result) {
+                resultElement.className = 'test-result success';
+                resultElement.textContent = '✅ ТЕСТ ПРОЙДЕН: Квест не засчитан (правильно обнаружено неправильное расположение)';
+            } else {
+                resultElement.className = 'test-result failure';
+                resultElement.textContent = '❌ ТЕСТ НЕ ПРОЙДЕН: Квест засчитан (ошибка - неправильная структура)';
+            }
+
+            outputElement.textContent = 'Структура файлов:\n' + JSON.stringify(consoleState.files, null, 2);
+        }
+
+        function testCase4() {
+            // Создаем неполную структуру
+            consoleState.files = {
+                '/home/user': ['study'],
+                '/home/user/study': ['projects']
+                // Нет папки test и файла task
+            };
+
+            gameData.quests['3.1'].completed = false;
+
+            const result = checkQuest31Completion();
+            const resultElement = document.getElementById('result4');
+            const outputElement = document.getElementById('output4');
+
+            if (!result) {
+                resultElement.className = 'test-result success';
+                resultElement.textContent = '✅ ТЕСТ ПРОЙДЕН: Квест не засчитан (неполная структура)';
+            } else {
+                resultElement.className = 'test-result failure';
+                resultElement.textContent = '❌ ТЕСТ НЕ ПРОЙДЕН: Квест засчитан (ошибка - неполная структура)';
+            }
+
+            outputElement.textContent = 'Структура файлов:\n' + JSON.stringify(consoleState.files, null, 2);
+        }
+    </script>
+</body>
+</html>
+<task_progress>
+- [x] Изучить текущую реализацию проверки структуры папок
+- [x] Понять, как определяется правильная структура
+- [x] Изменить логику проверки
+- [x] Протестировать изменения
+</task_progress>
+</write_to_file>
