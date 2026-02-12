@@ -328,9 +328,9 @@
                     <div class="quest-description">
                         <p><strong>Задача:</strong> Определить IP шлюза и проверить связь с ним</p>
                         <div class="quest-steps">
-                            <p>1. В командной строке введите <span class="command" onclick="copyCommand(this)">ipconfig</span></p>
+                            <p>1. В командной строке введите <span class="command">ipconfig</span></p>
                             <p>2. Найдите строку "Default Gateway"</p>
-                            <p>3. Пропингуйте шлюз: <span class="command" onclick="copyCommand(this)">ping [IP_шлюза]</span></p>
+                            <p>3. Пропингуйте шлюз: <span class="command">ping [IP_шлюза]</span></p>
                         </div>
                         <div class="quest-check">
                             
@@ -346,7 +346,7 @@
                     <div class="quest-description">
                         <p><strong>Задача:</strong> Узнать IP-адрес сайта через DNS</p>
                         <div class="quest-steps">
-                            <p>1. Введите команду: <span class="command" onclick="copyCommand(this)">nslookup google.com</span></p>
+                            <p>1. Введите команду: <span class="command">nslookup google.com</span></p>
                             <p>2. Найдите строку "Address" - это IP-адрес серверов Google</p>
                         </div>
                         <div class="quest-check">
@@ -534,7 +534,10 @@ ls -la</pre>
                         <div class="progress-fill" id="completion-progress-fill"></div>
                     </div>
                 </div>
-                <button class="next-level-modal-btn" id="next-level-modal-btn" onclick="goToNextLevelFromModal()">Перейти на следующий уровень</button>
+                <div class="level-completion-buttons">
+                    <button class="return-to-level-btn" id="return-to-level-btn" onclick="returnToCurrentLevel()">🔙 Вернуться на уровень</button>
+                    <button class="next-level-modal-btn" id="next-level-modal-btn" onclick="goToNextLevelFromModal()">Перейти на следующий уровень</button>
+                </div>
             </div>
         </div>
 

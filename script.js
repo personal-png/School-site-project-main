@@ -11,7 +11,8 @@ const gameData = {
         '3.1': { completed: false, xp: 20, unlocked: false },
         '3.2': { completed: false, xp: 20, unlocked: false },
         '4.1': { completed: false, xp: 20, unlocked: false }
-    }
+    },
+    level4UnlockedBySecretPhrase: false // Флаг для отслеживания разблокировки уровня 4 через секретную фразу
 };
 
 // Уровни и звания
@@ -32,6 +33,8 @@ const achievements = {
 
 // Текущий открытый уровень
 let currentLevel = 1;
+// Флаг для отслеживания, было ли модальное окно завершения уровня закрыто пользователем
+let levelCompletionModalDismissed = false;
 
 // Инициализация игры
 function initGame() {
@@ -101,6 +104,12 @@ function showLevel(levelNumber) {
         return;
     }
 
+    // Специальная проверка для уровня 4 - требуется секретная фраза
+    if (levelNumber === 4 && !gameData.level4UnlockedBySecretPhrase) {
+        alert('🔒 Уровень 4 заблокирован! Чтобы разблокировать его, завершите уровень 3 и введите секретную фразу.');
+        return;
+    }
+
     currentLevel = levelNumber;
 
     // Скрываем все уровни
@@ -123,6 +132,36 @@ function showLevel(levelNumber) {
     // Переходим к разделу квестов
     showSection('quests');
     updateLevelProgress();
+
+    // Проверяем, завершен ли этот уровень, и показываем модальное окно завершения уровня
+    // Это позволит пользователю вспомнить секретную фразу
+    // Только если пользователь не закрывал модальное окно завершения уровня
+    if (isLevelCompleted(levelNumber) && !levelCompletionModalDismissed) {
+        // Для уровня 3 показываем специальное модальное окно с секретной фразой
+        if (levelNumber === 3) {
+            // Рассчитываем XP, который был получен за завершение уровня
+            const levelQuests = Object.keys(gameData.quests)
+                .filter(questId => questId.startsWith(levelNumber + '.') && gameData.quests[questId].completed);
+            const xpGained = levelQuests.reduce((sum, questId) => sum + gameData.quests[questId].xp, 0);
+
+            // Показываем модальное окно с секретной фразой
+            showLevelCompletionModalWithSecretPhrase(levelNumber, xpGained);
+        }
+        // Для других уровней показываем обычное модальное окно завершения уровня
+        else if (levelNumber < 4) {
+            // Рассчитываем XP, который был получен за завершение уровня
+            const levelQuests = Object.keys(gameData.quests)
+                .filter(questId => questId.startsWith(levelNumber + '.') && gameData.quests[questId].completed);
+            const xpGained = levelQuests.reduce((sum, questId) => sum + gameData.quests[questId].xp, 0);
+
+            // Показываем модальное окно завершения уровня с анимацией
+            showLevelCompletionModalWithAnimation(levelNumber, xpGained);
+        }
+    }
+    // Сбрасываем флаг, если уровень не завершен или если пользователь вернулся на уровень
+    if (!isLevelCompleted(levelNumber) || levelCompletionModalDismissed) {
+        levelCompletionModalDismissed = false;
+    }
 }
 
 // Обновление карты уровней
@@ -537,6 +576,7 @@ function showLevelCompletionModalWithAnimation(level, xpGained) {
     const rankElement = document.getElementById('completion-rank');
     const progressFill = document.getElementById('completion-progress-fill');
     const nextLevelBtn = document.getElementById('next-level-modal-btn');
+    const returnToLevelBtn = document.getElementById('return-to-level-btn');
 
     // Устанавливаем данные в модальное окно
     title.textContent = `🎉 Уровень ${level} завершен!`;
@@ -567,6 +607,9 @@ function showLevelCompletionModalWithAnimation(level, xpGained) {
     progressFill.style.width = '0%';
     progressFill.style.transition = 'none';
 
+    // Всегда показываем кнопку "Вернуться на уровень"
+    returnToLevelBtn.style.display = 'block';
+
     // Показываем кнопку "Перейти на следующий уровень" если есть следующий уровень
     if (level < 4) {
         nextLevelBtn.textContent = `🎮 Перейти на уровень ${level + 1}`;
@@ -584,8 +627,10 @@ function showLevelCompletionModalWithAnimation(level, xpGained) {
     // Запускаем анимацию получения опыта
     animateXPGainWithTaskFlying(level, xpGained, currentXP);
 
-    // Показываем модальное окно
-    modal.style.display = 'block';
+    // Добавляем задержку 3 секунды перед показом модального окна
+    setTimeout(() => {
+        modal.style.display = 'block';
+    }, 3000);
 }
 
 // Показ модального окна завершения уровня (оригинальная функция)
@@ -1081,6 +1126,41 @@ function showLevelCompletionModalWithSecretPhrase(level, xpGained) {
         secretPhraseContainer.appendChild(secretButton);
         secretPhraseContainer.appendChild(secretMessage);
 
+        // Добавляем кнопку "Вернуться к карте" для удобства пользователя
+        const returnToMapButton = document.createElement('button');
+        returnToMapButton.id = 'return-to-map-button';
+        returnToMapButton.textContent = '🗺️ Вернуться к карте';
+        returnToMapButton.style.width = '100%';
+        returnToMapButton.style.padding = '12px';
+        returnToMapButton.style.marginTop = '10px';
+        returnToMapButton.style.background = 'linear-gradient(135deg, #48bb78, #38a169)';
+        returnToMapButton.style.color = 'white';
+        returnToMapButton.style.border = 'none';
+        returnToMapButton.style.borderRadius = '8px';
+        returnToMapButton.style.fontSize = '1em';
+        returnToMapButton.style.fontWeight = 'bold';
+        returnToMapButton.style.cursor = 'pointer';
+        returnToMapButton.style.transition = 'all 0.3s ease';
+
+        // Добавляем обработчик наведения
+        returnToMapButton.onmouseover = function() {
+            this.style.transform = 'translateY(-2px)';
+            this.style.boxShadow = '0 4px 15px rgba(72, 187, 120, 0.4)';
+        };
+
+        returnToMapButton.onmouseout = function() {
+            this.style.transform = 'translateY(0)';
+            this.style.boxShadow = 'none';
+        };
+
+        // Добавляем обработчик клика
+        returnToMapButton.onclick = function() {
+            closeLevelCompletionModal();
+            showSection('map');
+        };
+
+        secretPhraseContainer.appendChild(returnToMapButton);
+
         // Добавляем контейнер в модальное окно
         const modalContent = modal.querySelector('.modal-content');
         modalContent.appendChild(secretPhraseContainer);
@@ -1092,8 +1172,10 @@ function showLevelCompletionModalWithSecretPhrase(level, xpGained) {
     // Запускаем анимацию получения опыта
     animateXPGainWithTaskFlying(level, xpGained, currentXP);
 
-    // Показываем модальное окно
-    modal.style.display = 'block';
+    // Добавляем задержку 3 секунды перед показом модального окна
+    setTimeout(() => {
+        modal.style.display = 'block';
+    }, 3000);
 }
 
 // Функция проверки секретной фразы
@@ -1130,6 +1212,9 @@ function checkSecretPhrase() {
 
 // Функция разблокировки уровня 4
 function unlockLevel4() {
+    // Устанавливаем флаг, что уровень 4 разблокирован через секретную фразу
+    gameData.level4UnlockedBySecretPhrase = true;
+
     // Разблокируем уровень 4
     const levelNode = document.querySelector(`.level-node[data-level="4"]`);
     if (levelNode) {
@@ -1158,6 +1243,18 @@ function unlockLevel4() {
     updateUI();
     updateMap();
     saveProgress();
+}
+
+// Функция возврата на текущий уровень
+function returnToCurrentLevel() {
+    // Закрываем модальное окно завершения уровня
+    closeLevelCompletionModal();
+
+    // Устанавливаем флаг, что пользователь закрыл модальное окно завершения уровня
+    levelCompletionModalDismissed = true;
+
+    // Возвращаемся к текущему уровню
+    showLevel(currentLevel);
 }
 
 // Переход на следующий уровень из модального окна
@@ -1234,7 +1331,8 @@ function saveProgress() {
         level: gameData.level,
         rank: gameData.rank,
         quests: gameData.quests,
-        achievements: achievements
+        achievements: achievements,
+        level4UnlockedBySecretPhrase: gameData.level4UnlockedBySecretPhrase
     };
     localStorage.setItem('sysadminGameProgress', JSON.stringify(saveData));
 }
@@ -1255,6 +1353,11 @@ function loadProgress() {
                     achievements[key].unlocked = saveData.achievements[key].unlocked;
                 }
             });
+        }
+
+        // Загружаем флаг разблокировки уровня 4
+        if (saveData.level4UnlockedBySecretPhrase !== undefined) {
+            gameData.level4UnlockedBySecretPhrase = saveData.level4UnlockedBySecretPhrase;
         }
 
         // НЕ вызываем calculateXP() при загрузке - XP уже сохранен в gameData.xp
